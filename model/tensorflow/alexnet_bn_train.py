@@ -14,7 +14,7 @@ data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 # Training Parameters
 learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 50000
+training_iters = 100 #initially 50,000
 step_display = 50
 step_save = 10000
 path_save = 'alexnet_bn'
@@ -153,6 +153,8 @@ with tf.Session() as sess:
     step = 0
 
     while step < training_iters:
+        print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print "iteration " + str(step) + " out of " + str(training_iters)
         # Load a batch of training data
         images_batch, labels_batch = loader_train.next_batch(batch_size)
         
