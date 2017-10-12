@@ -14,10 +14,10 @@ data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 # Training Parameters
 learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 100 #initially 50,000
-step_display = 50
-step_save = 10000
-path_save = 'alexnet_bn'
+training_iters = 1 #initially 50,000
+step_display = 1 #initially 50
+step_save = 1 #initially 10,000
+path_save = 'alexnet_bn.ckpt'
 start_from = ''
 
 def batch_norm_layer(x, train_phase, scope_bn):
@@ -88,7 +88,7 @@ def alexnet(x, keep_dropout, train_phase):
 
     # Output FC
     out = tf.add(tf.matmul(fc7, weights['wo']), biases['bo'])
-    
+
     return out
 
 # Construct dataloader
@@ -195,9 +195,20 @@ with tf.Session() as sess:
     acc1_total = 0.
     acc5_total = 0.
     loader_val.reset()
+    #a = 0
     for i in range(num_batch):
         images_batch, labels_batch = loader_val.next_batch(batch_size)    
-        acc1, acc5 = sess.run([accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False})
+        #10,000 validation images. Batch size is 256.
+        #a = a + 1
+
+        feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
+
+        topprediction=tf.argmax(logits, 1)
+        best = sess.run([topprediction],feed_dict)
+        print(best)
+        
+        acc1, acc5 = sess.run([accuracy1, accuracy5], feed_dict)
+
         acc1_total += acc1
         acc5_total += acc5
         print "Validation Accuracy Top1 = " + \
