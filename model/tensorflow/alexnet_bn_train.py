@@ -130,8 +130,12 @@ loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, l
 train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
 # Evaluate model
+# in_top_k Gives a boolean for each image, for whether or not it's correct classification was in the top k outputs
 accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(logits, y, 1), tf.float32))
 accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(logits, y, 5), tf.float32))
+
+accuracy1_nums = tf.nn.in_top_k(logits, y, 1)
+accuracy5_nums = tf.nn.in_top_k(logits, y, 5)
 
 # define initialization
 init = tf.global_variables_initializer()
@@ -163,6 +167,13 @@ with tf.Session() as sess:
 
             # Calculate batch loss and accuracy on training set
             l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}) 
+
+            # acc1_nums, acc5_nums = sess.run([accuracy1_nums, accuracy5_nums], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False})
+            # print "---------ACCURACY NUMS---------"
+            # print acc1_nums
+            # print acc5_nums
+            # print "---------ACCURACY NUMS---------"
+
             print "-Iter " + str(step) + ", Training Loss= " + \
             "{:.6f}".format(l) + ", Accuracy Top1 = " + \
             "{:.4f}".format(acc1) + ", Top5 = " + \
@@ -196,6 +207,9 @@ with tf.Session() as sess:
     acc5_total = 0.
     loader_val.reset()
     #a = 0
+    real_vals = open('../../data/val.txt', 'r')
+    real_vals_lines = real_vals.readlines()
+
     for i in range(num_batch):
         images_batch, labels_batch = loader_val.next_batch(batch_size)    
         #10,000 validation images. Batch size is 256.
@@ -203,9 +217,20 @@ with tf.Session() as sess:
 
         feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
 
-        topprediction=tf.argmax(logits, 1)
-        best = sess.run([topprediction],feed_dict)
-        print(best)
+        topprediction = tf.nn.top_k(logits, 5)
+        best_vals, best_indices = sess.run(topprediction, feed_dict)
+        print(best_indices)
+
+        real_acc = 0.
+        for j in xrange(batch_size):
+            line = real_vals_lines[j + (i * batch_size)].split()
+            real_val = line[1]
+            if int(best_indices[j][0]) == int(real_val):
+                real_acc += 1.0
+
+        real_acc /= batch_size
+
+        print "TOP 1 FROM TOP_K ACC = " + "{:.4f}".format(real_acc)
         
         acc1, acc5 = sess.run([accuracy1, accuracy5], feed_dict)
 
@@ -214,6 +239,8 @@ with tf.Session() as sess:
         print "Validation Accuracy Top1 = " + \
             "{:.4f}".format(acc1) + ", Top5 = " + \
             "{:.4f}".format(acc5)
+
+    read_vals.close()
 
     acc1_total /= num_batch
     acc5_total /= num_batch
