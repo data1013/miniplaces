@@ -20,8 +20,6 @@ step_save = 1 #initially 10,000
 path_save = 'alexnet_bn.ckpt'
 start_from = ''
 
-f = open("datalie.txt", "w+")
-
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,
     updates_collections=None,
@@ -95,8 +93,8 @@ def alexnet(x, keep_dropout, train_phase):
 
 # Construct dataloader
 opt_data_train = {
-    #'data_h5': 'miniplaces_256_train.h5',
-    'data_root': '../../data/images/',   # MODIFY PATH ACCORDINGLY
+    'data_h5': 'miniplaces_256_train.h5',
+    #'data_root': '../../data/images/',   # MODIFY PATH ACCORDINGLY
     'data_list': '../../data/train.txt', # MODIFY PATH ACCORDINGLY
     'load_size': load_size,
     'fine_size': fine_size,
@@ -105,8 +103,8 @@ opt_data_train = {
     'training': True
     }
 opt_data_val = {
-    #'data_h5': 'miniplaces_256_val.h5',
-    'data_root': '../../data/images/',   # MODIFY PATH ACCORDINGLY
+    'data_h5': 'miniplaces_256_val.h5',
+    #'data_root': '../../data/images/',   # MODIFY PATH ACCORDINGLY
     'data_list': '../../data/val.txt',   # MODIFY PATH ACCORDINGLY
     'load_size': load_size,
     'fine_size': fine_size,
@@ -115,10 +113,10 @@ opt_data_val = {
     'training': False
     }
 
-loader_train = DataLoaderDisk(**opt_data_train)
-loader_val = DataLoaderDisk(**opt_data_val)
-#loader_train = DataLoaderH5(**opt_data_train)
-#loader_val = DataLoaderH5(**opt_data_val)
+#loader_train = DataLoaderDisk(**opt_data_train)
+#loader_val = DataLoaderDisk(**opt_data_val)
+loader_train = DataLoaderH5(**opt_data_train)
+loader_val = DataLoaderH5(**opt_data_val)
 
 # tf Graph input
 x = tf.placeholder(tf.float32, [None, fine_size, fine_size, c])
@@ -214,7 +212,6 @@ with tf.Session() as sess:
     real_vals = open('../../data/val.txt', 'r')
     real_vals_lines = real_vals.readlines()
 
-    imgCounter = 1
     for i in range(num_batch):
         images_batch, labels_batch = loader_val.next_batch(batch_size)    
         #10,000 validation images. Batch size is 256.
@@ -228,23 +225,7 @@ with tf.Session() as sess:
 
         topprediction = tf.nn.top_k(logits, 5)
         best_vals, best_indices = sess.run(topprediction, feed_dict)
-        #print(best_indices) #prints (batch_size)x1 array where each row is a 1x5 for top 5
-        for x in xrange(0, len(best_indices)):
-            imgFile = ""
-            if imgCounter < 10:
-                imgFile = "0000000"+str(imgCounter)
-            elif imgCounter < 100:
-                imgFile = "000000"+str(imgCounter)
-            elif imgCounter < 1000:
-                imgFile = "00000"+str(imgCounter)
-            elif imgCounter < 10000:
-                imgFile = "0000"+str(imgCounter)
-            elif imgCounter < 100000:
-                imgFile = "000"+str(imgCounter)
-            
-            imgCounter = imgCounter + 1
-
-            f.write("test/"+imgFile+".jpg "+str(best_indices[x][0])+" "+str(best_indices[x][1])+" "+str(best_indices[x][2])+" "+str(best_indices[x][3])+" "+str(best_indices[x][4])+"\n")
+        print(best_indices)
 
         real_acc = 0.
         for j in xrange(batch_size):
@@ -266,7 +247,6 @@ with tf.Session() as sess:
             "{:.4f}".format(acc5)
 
     real_vals.close()
-    f.close()
 
     acc1_total /= num_batch
     acc5_total /= num_batch
