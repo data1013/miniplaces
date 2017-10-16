@@ -23,7 +23,9 @@ class DataLoaderH5(object):
         assert self.im_set.shape[2]==self.load_size, 'Image size error!'
         print('# Images found:'), self.num
 
-        self.shuffle()
+        if kwargs['training']:
+            self.shuffle()
+
         self._idx = 0
         
     def next_batch(self, batch_size):
@@ -89,9 +91,10 @@ class DataLoaderDisk(object):
         print('# Images found:'), self.num
 
         # permutation
-        # perm = np.random.permutation(self.num)
-        # self.list_im[:, ...] = self.list_im[perm, ...]
-        # self.list_lab[:] = self.list_lab[perm, ...]
+        if kwargs['training']:
+            perm = np.random.permutation(self.num)
+            self.list_im[:, ...] = self.list_im[perm, ...]
+            self.list_lab[:] = self.list_lab[perm, ...]
 
         self._idx = 0
         
