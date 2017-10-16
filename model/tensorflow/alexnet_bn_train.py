@@ -203,8 +203,8 @@ with tf.Session() as sess:
 
         feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
 
-        topprediction=tf.argmax(logits, 1)
-        best = sess.run([topprediction],feed_dict)
+        topprediction=tf.argmin(logits, 1)
+        best = sess.run([topprediction], feed_dict)
         print(best)
         
         acc1, acc5 = sess.run([accuracy1, accuracy5], feed_dict)
