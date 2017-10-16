@@ -99,7 +99,8 @@ opt_data_train = {
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
-    'randomize': True
+    'randomize': True,
+    'training': True
     }
 opt_data_val = {
     'data_h5': 'miniplaces_256_val.h5',
@@ -108,7 +109,8 @@ opt_data_val = {
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
-    'randomize': False
+    'randomize': False,
+    'training': False
     }
 
 #loader_train = DataLoaderDisk(**opt_data_train)
