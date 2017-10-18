@@ -218,7 +218,7 @@ with tf.Session() as sess:
     loader_test.reset()
 
     imgCounter = 1
-    for i in range(num_batch):
+    for i in range(num_batch+1):
         images_batch, labels_batch = loader_test.next_batch(batch_size)    
 
         feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}

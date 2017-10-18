@@ -22,7 +22,7 @@ path_save = 'alexnet_bn.ckpt'
 export_dir = 'builtModel/'
 start_from = ''
 
-f = open("datalie.txt", "w+")
+#f = open("datalie.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,
@@ -238,7 +238,7 @@ with tf.Session() as sess:
             
             imgCounter += 1
 
-            f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
+            #f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
 
         real_acc = 0.
         for j in xrange(batch_size):
@@ -260,7 +260,7 @@ with tf.Session() as sess:
             "{:.4f}".format(acc5)
 
     real_vals.close()
-    f.close()
+    #f.close()
 
     acc1_total /= num_batch
     acc5_total /= num_batch
