@@ -226,7 +226,7 @@ with tf.Session() as sess:
         topprediction = tf.nn.top_k(logits, 5)
         best_vals, best_indices = sess.run(topprediction, feed_dict)
 
-        for img_idx in xrange(batch_size):
+        for img_idx in xrange(len(best_indices)):
             current_image = best_indices[img_idx]
 
             imgFile = str(imgCounter)

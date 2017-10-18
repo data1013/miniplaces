@@ -230,7 +230,7 @@ with tf.Session() as sess:
         topprediction = tf.nn.top_k(logits, 5)
         best_vals, best_indices = sess.run(topprediction, feed_dict)
         #print(best_indices) #prints (batch_size)x1 array where each row is a 1x5 for top 5
-        for img_idx in xrange(batch_size):
+        for img_idx in xrange(len(best_indices)):
             current_image = best_indices[img_idx]
 
             imgFile = str(imgCounter)
@@ -238,7 +238,7 @@ with tf.Session() as sess:
             
             imgCounter += 1
 
-            f.write("test/" + imgFile + ".jpg %i %i %i %i %i \n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
+            f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
 
         real_acc = 0.
         for j in xrange(batch_size):
