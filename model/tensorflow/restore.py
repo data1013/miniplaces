@@ -119,7 +119,7 @@ opt_data_val = {
 opt_data_test = {
     #'data_h5': 'miniplaces_256_val.h5',
     'data_root': '../../data/images/',
-    'data_list': '../../data/val.txt', #this is wrong, but DataLoader needs a data list so just use one of same size
+    'data_list': '../../data/test.txt',
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
