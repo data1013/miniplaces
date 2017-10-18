@@ -18,7 +18,6 @@ dropout = 0.5 # Dropout, probability to keep units
 training_iters = 1 #initially 50,000
 step_display = 1 #initially 50
 step_save = 1 #initially 10,000
-path_save = 'alexnet_bn.ckpt'
 export_dir = 'builtModel/'
 start_from = ''
 
@@ -98,8 +97,8 @@ def alexnet(x, keep_dropout, train_phase):
 # Construct dataloader
 opt_data_train = {
     #'data_h5': 'miniplaces_256_train.h5',
-    'data_root': '../../data/images/',   # MODIFY PATH ACCORDINGLY
-    'data_list': '../../data/train.txt', # MODIFY PATH ACCORDINGLY
+    'data_root': '../../data/images/',
+    'data_list': '../../data/train.txt',
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
@@ -108,8 +107,19 @@ opt_data_train = {
     }
 opt_data_val = {
     #'data_h5': 'miniplaces_256_val.h5',
-    'data_root': '../../data/images/',   # MODIFY PATH ACCORDINGLY
-    'data_list': '../../data/val.txt',   # MODIFY PATH ACCORDINGLY
+    'data_root': '../../data/images/',
+    'data_list': '../../data/val.txt',
+    'load_size': load_size,
+    'fine_size': fine_size,
+    'data_mean': data_mean,
+    'randomize': False,
+    'training': False
+    }
+
+opt_data_test = {
+    #'data_h5': 'miniplaces_256_val.h5',
+    'data_root': '../../data/images/',
+    'data_list': '../../data/val.txt', #this is wrong, but DataLoader needs a data list so just use one of same size
     'load_size': load_size,
     'fine_size': fine_size,
     'data_mean': data_mean,
@@ -119,6 +129,7 @@ opt_data_val = {
 
 loader_train = DataLoaderDisk(**opt_data_train)
 loader_val = DataLoaderDisk(**opt_data_val)
+loader_test = DataLoaderDisk(**opt_data_test)
 #loader_train = DataLoaderH5(**opt_data_train)
 #loader_val = DataLoaderH5(**opt_data_val)
 
@@ -194,24 +205,21 @@ with tf.Session() as sess:
         
         # Save model
         if step % step_save == 0:
-            saver.save(sess, path_save, global_step=step)
+            saver.save(sess, 'test1001.ckpt', global_step=step)
             print "Model saved at Iter %d !" %(step)
         
     print "Optimization Finished!"
 
-    # Evaluate on the whole validation set
-    print 'Evaluation on the whole validation set...'
-    num_batch = loader_val.size()/batch_size
+    # Evaluate on the whole test set
+    print 'Evaluation on the whole test set...'
+    num_batch = loader_test.size()/batch_size
     acc1_total = 0.
     acc5_total = 0.
-    loader_val.reset()
-
-    real_vals = open('../../data/val.txt', 'r')
-    real_vals_lines = real_vals.readlines()
+    loader_test.reset()
 
     imgCounter = 1
     for i in range(num_batch):
-        images_batch, labels_batch = loader_val.next_batch(batch_size)    
+        images_batch, labels_batch = loader_test.next_batch(batch_size)    
 
         feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
 
@@ -226,30 +234,6 @@ with tf.Session() as sess:
             
             imgCounter += 1
 
-            f.write("test/" + imgFile + ".jpg %i %i %i %i %i \n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
+            f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
 
-        real_acc = 0.
-        for j in xrange(batch_size):
-            line = real_vals_lines[j + (i * batch_size)].split()
-            real_val = line[1]
-            if int(best_indices[j][0]) == int(real_val):
-                real_acc += 1.0
-
-        real_acc /= batch_size
-
-        print "TOP 1 FROM TOP_K ACC = " + "{:.4f}".format(real_acc)
-        
-        acc1, acc5 = sess.run([accuracy1, accuracy5], feed_dict)
-
-        acc1_total += acc1
-        acc5_total += acc5
-        print "Validation Accuracy Top1 = " + \
-            "{:.4f}".format(acc1) + ", Top5 = " + \
-            "{:.4f}".format(acc5)
-
-    real_vals.close()
     f.close()
-
-    acc1_total /= num_batch
-    acc5_total /= num_batch
-    print 'Evaluation Finished! Accuracy Top1 = ' + "{:.4f}".format(acc1_total) + ", Top5 = " + "{:.4f}".format(acc5_total)

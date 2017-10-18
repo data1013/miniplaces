@@ -80,15 +80,16 @@ class DataLoaderDisk(object):
         # read data info from lists
         self.list_im = []
         self.list_lab = []
-        with open(kwargs['data_list'], 'r') as f:
-            for line in f:
-                path, lab =line.rstrip().split(' ')
-                self.list_im.append(os.path.join(self.data_root, path))
-                self.list_lab.append(int(lab))
-        self.list_im = np.array(self.list_im, np.object)
-        self.list_lab = np.array(self.list_lab, np.int64)
-        self.num = self.list_im.shape[0]
-        print('# Images found:'), self.num
+        if kwargs['data_list']:
+            with open(kwargs['data_list'], 'r') as f:
+                for line in f:
+                    path, lab =line.rstrip().split(' ')
+                    self.list_im.append(os.path.join(self.data_root, path))
+                    self.list_lab.append(int(lab))
+            self.list_im = np.array(self.list_im, np.object)
+            self.list_lab = np.array(self.list_lab, np.int64)
+            self.num = self.list_im.shape[0]
+            print('# Images found:'), self.num
 
         # permutation
         if kwargs['training']:
