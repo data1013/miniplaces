@@ -20,6 +20,8 @@ step_display = 1 #initially 50
 step_save = 1 #initially 10,000
 export_dir = 'builtModel/'
 start_from = ''
+last_session = 'alexnet_bn.ckpt-1000'
+new_session = 'test1001.ckpt'
 
 f = open("datalie.txt", "w+")
 
@@ -168,7 +170,7 @@ with tf.Session() as sess:
     print("Post-running init.")
 
     # Restore model weights from previously saved model
-    saver.restore(sess, "alexnet_bn.ckpt-1000")
+    saver.restore(sess, last_session)
     print("Model restored.")
     
     step = 0
@@ -205,7 +207,7 @@ with tf.Session() as sess:
         
         # Save model
         if step % step_save == 0:
-            saver.save(sess, 'test1001.ckpt', global_step=step)
+            saver.save(sess, new_session, global_step=step)
             print "Model saved at Iter %d !" %(step)
         
     print "Optimization Finished!"
