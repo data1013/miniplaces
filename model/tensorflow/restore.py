@@ -146,19 +146,19 @@ accuracy5_nums = tf.nn.in_top_k(logits, y, 5)
 # define initialization
 init = tf.global_variables_initializer()
 
-# define saver
+# Add ops to save and restore all the variables.
 saver = tf.train.Saver()
 
-# define summary writer
-#writer = tf.train.SummaryWriter('.', graph=tf.get_default_graph())
-
-# Launch the graph
 with tf.Session() as sess:
-    # Initialization
-    if len(start_from)>1:
-        saver.restore(sess, start_from)
-    else:
-        sess.run(init)
+    print("Pre-running init.")
+    # Initialize variables
+    sess.run(init)
+
+    print("Post-running init.")
+
+    # Restore model weights from previously saved model
+    saver.restore(sess, "alexnet_bn.ckpt-1000")
+    print("Model restored.")
     
     step = 0
 
@@ -173,12 +173,6 @@ with tf.Session() as sess:
 
             # Calculate batch loss and accuracy on training set
             l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}) 
-
-            # acc1_nums, acc5_nums = sess.run([accuracy1_nums, accuracy5_nums], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False})
-            # print "---------ACCURACY NUMS---------"
-            # print acc1_nums
-            # print acc5_nums
-            # print "---------ACCURACY NUMS---------"
 
             print "-Iter " + str(step) + ", Training Loss= " + \
             "{:.6f}".format(l) + ", Accuracy Top1 = " + \
@@ -211,25 +205,19 @@ with tf.Session() as sess:
     acc1_total = 0.
     acc5_total = 0.
     loader_val.reset()
-    #a = 0
+
     real_vals = open('../../data/val.txt', 'r')
     real_vals_lines = real_vals.readlines()
 
     imgCounter = 1
     for i in range(num_batch):
         images_batch, labels_batch = loader_val.next_batch(batch_size)    
-        #10,000 validation images. Batch size is 256.
-        #a = a + 1
 
         feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
 
-        # topprediction=tf.argmin(logits, 1)
-        # best = sess.run([topprediction], feed_dict)
-        # print(best)
-
         topprediction = tf.nn.top_k(logits, 5)
         best_vals, best_indices = sess.run(topprediction, feed_dict)
-        #print(best_indices) #prints (batch_size)x1 array where each row is a 1x5 for top 5
+
         for img_idx in xrange(batch_size):
             current_image = best_indices[img_idx]
 
