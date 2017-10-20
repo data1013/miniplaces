@@ -15,15 +15,15 @@ data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 # Training Parameters
 learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 1 #initially 50,000
-step_display = 1 #initially 50
-step_save = 1 #initially 10,000
+training_iters = 1000 #initially 50,000
+step_display = 50 #initially 50
+step_save = 100 #initially 10,000
 export_dir = 'builtModel/'
 start_from = ''
-last_session = 'alexnet_bn.ckpt-1000'
-new_session = 'test1001.ckpt'
+last_session = '3650.ckpt-1000'
+new_session = '4650.ckpt'
 
-f = open("datalie.txt", "w+")
+f = open("datalieALEXFINAL.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,
@@ -180,8 +180,8 @@ with tf.Session() as sess:
         print "iteration " + str(step) + " out of " + str(training_iters)
         # Load a batch of training data
         images_batch, labels_batch = loader_train.next_batch(batch_size)
-        
-        if step % step_display == 0:
+
+        if step == 0:
             print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
             # Calculate batch loss and accuracy on training set
@@ -204,6 +204,25 @@ with tf.Session() as sess:
         sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
         step += 1
+
+        if step % step_display == 0:
+            print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+            # Calculate batch loss and accuracy on training set
+            l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}) 
+
+            print "-Iter " + str(step) + ", Training Loss= " + \
+            "{:.6f}".format(l) + ", Accuracy Top1 = " + \
+            "{:.4f}".format(acc1) + ", Top5 = " + \
+            "{:.4f}".format(acc5)
+
+            # Calculate batch loss and accuracy on validation set
+            images_batch_val, labels_batch_val = loader_val.next_batch(batch_size)    
+            l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch_val, y: labels_batch_val, keep_dropout: 1., train_phase: False}) 
+            print "-Iter " + str(step) + ", Validation Loss= " + \
+            "{:.6f}".format(l) + ", Accuracy Top1 = " + \
+            "{:.4f}".format(acc1) + ", Top5 = " + \
+            "{:.4f}".format(acc5)
         
         # Save model
         if step % step_save == 0:
