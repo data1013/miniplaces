@@ -24,6 +24,12 @@ last_session = '10000.ckpt-1300'
 new_session = '11000.ckpt'
 
 f = open("./outputs/datalieALEXFINAL.txt", "w+")
+fwrite1 = open("trainingloss.txt", "w+")
+fwrite2 = open("trainingacc1.txt", "w+")
+fwrite3 = open("trainingacc5.txt", "w+")
+fwrite4 = open("validationloss.txt", "w+")
+fwrite5 = open("validationacc1.txt", "w+")
+fwrite6 = open("validationacc5.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,
@@ -176,31 +182,9 @@ with tf.Session() as sess:
     step = 0
 
     while step < training_iters:
-        #print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        #print "iteration " + str(step) + " out of " + str(training_iters)
-        
         # Load a batch of training data
         images_batch, labels_batch = loader_train.next_batch(batch_size)
 
-        if step == 0:
-            print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-            # Calculate batch loss and accuracy on training set
-            l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}) 
-
-            print "-Iter " + str(step) + ", Training Loss= " + \
-            "{:.6f}".format(l) + ", Accuracy Top1 = " + \
-            "{:.4f}".format(acc1) + ", Top5 = " + \
-            "{:.4f}".format(acc5)
-
-            # Calculate batch loss and accuracy on validation set
-            images_batch_val, labels_batch_val = loader_val.next_batch(batch_size)    
-            l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch_val, y: labels_batch_val, keep_dropout: 1., train_phase: False}) 
-            print "-Iter " + str(step) + ", Validation Loss= " + \
-            "{:.6f}".format(l) + ", Accuracy Top1 = " + \
-            "{:.4f}".format(acc1) + ", Top5 = " + \
-            "{:.4f}".format(acc5)
-        
         # Run optimization op (backprop)
         sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
@@ -217,6 +201,10 @@ with tf.Session() as sess:
             "{:.4f}".format(acc1) + ", Top5 = " + \
             "{:.4f}".format(acc5)
 
+            fwrite1.write("{:.6f}".format(l)+"\n")
+            fwrite2.write("{:.4f}".format(acc1)+"\n")
+            fwrite3.write("{:.4f}".format(acc5)+"\n")
+
             # Calculate batch loss and accuracy on validation set
             images_batch_val, labels_batch_val = loader_val.next_batch(batch_size)    
             l, acc1, acc5 = sess.run([loss, accuracy1, accuracy5], feed_dict={x: images_batch_val, y: labels_batch_val, keep_dropout: 1., train_phase: False}) 
@@ -224,6 +212,10 @@ with tf.Session() as sess:
             "{:.6f}".format(l) + ", Accuracy Top1 = " + \
             "{:.4f}".format(acc1) + ", Top5 = " + \
             "{:.4f}".format(acc5)
+
+            fwrite4.write("{:.6f}".format(l)+"\n")
+            fwrite5.write("{:.4f}".format(acc1)+"\n")
+            fwrite6.write("{:.4f}".format(acc5)+"\n")
         
         # Save model
         if step % step_save == 0:
@@ -231,6 +223,13 @@ with tf.Session() as sess:
             print "Model saved at Iter %d !" %(step)
         
     print "Optimization Finished!"
+
+    fwrite1.close()
+    fwrite2.close()
+    fwrite3.close()
+    fwrite4.close()
+    fwrite5.close()
+    fwrite6.close()
 
     # Evaluate on the whole test set
     print 'Evaluation on the whole test set...'
@@ -259,3 +258,10 @@ with tf.Session() as sess:
             f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
 
     f.close()
+
+    readFile = open("./outputs/datalieALEXFINAL.txt")
+    lines = readFile.readlines()
+    readFile.close()
+    w = open("./outputs/datalieALEXFINAL.txt","w")
+    w.writelines([item for item in lines[:-240]])
+    w.close()
