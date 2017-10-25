@@ -23,7 +23,7 @@ start_from = ''
 last_session = '10000.ckpt-1300'
 new_session = '11000.ckpt'
 
-f = open("datalieALEXFINAL.txt", "w+")
+f = open("./outputs/datalieALEXFINAL.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,

@@ -22,7 +22,7 @@ path_save = 'alexnet_bn.ckpt'
 export_dir = 'builtModel/'
 start_from = ''
 
-#f = open("datalie.txt", "w+")
+#f = open("./outputs/datalie.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,
