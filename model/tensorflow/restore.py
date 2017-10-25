@@ -17,11 +17,11 @@ learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
 training_iters = 1000 #initially 50,000
 step_display = 50 #initially 50
-step_save = 100 #initially 10,000
+step_save = 1000 #initially 10,000
 export_dir = 'builtModel/'
 start_from = ''
-last_session = '3650.ckpt-1000'
-new_session = '4650.ckpt'
+last_session = '10000.ckpt-1300'
+new_session = '11000.ckpt'
 
 f = open("datalieALEXFINAL.txt", "w+")
 
@@ -176,8 +176,9 @@ with tf.Session() as sess:
     step = 0
 
     while step < training_iters:
-        print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        print "iteration " + str(step) + " out of " + str(training_iters)
+        #print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        #print "iteration " + str(step) + " out of " + str(training_iters)
+        
         # Load a batch of training data
         images_batch, labels_batch = loader_train.next_batch(batch_size)
 
