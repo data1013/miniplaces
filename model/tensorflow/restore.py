@@ -24,12 +24,12 @@ last_session = '10000.ckpt-1300'
 new_session = '11000.ckpt'
 
 f = open("./outputs/datalieALEXFINAL.txt", "w+")
-fwrite1 = open("trainingloss.txt", "w+")
-fwrite2 = open("trainingacc1.txt", "w+")
-fwrite3 = open("trainingacc5.txt", "w+")
-fwrite4 = open("validationloss.txt", "w+")
-fwrite5 = open("validationacc1.txt", "w+")
-fwrite6 = open("validationacc5.txt", "w+")
+fwrite1 = open("./outputs/trainingloss.txt", "w+")
+fwrite2 = open("./outputs/trainingacc1.txt", "w+")
+fwrite3 = open("./outputs/trainingacc5.txt", "w+")
+fwrite4 = open("./outputs/validationloss.txt", "w+")
+fwrite5 = open("./outputs/validationacc1.txt", "w+")
+fwrite6 = open("./outputs/validationacc5.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
     return batch_norm(x, decay=0.9, center=True, scale=True,
