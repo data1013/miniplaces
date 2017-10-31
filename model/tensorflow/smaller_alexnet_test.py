@@ -23,7 +23,6 @@ start_from = ''
 # last_session = '10000.ckpt-1300'
 new_session = '.ckpt'
 
-f = open("./outputs/datalieALEXFINAL.txt", "w+")
 fwrite1 = open("./outputs/trainingloss.txt", "w+")
 fwrite2 = open("./outputs/trainingacc1.txt", "w+")
 fwrite3 = open("./outputs/trainingacc5.txt", "w+")
@@ -216,7 +215,45 @@ with tf.Session() as sess:
             fwrite4.write("{:.6f}".format(l)+"\n")
             fwrite5.write("{:.4f}".format(acc1)+"\n")
             fwrite6.write("{:.4f}".format(acc5)+"\n")
-        
+
+            if acc5 > 0.74:
+                current_step = str(step)
+
+                f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
+                print 'Evaluation on the whole test set...'
+                num_batch = loader_test.size()/batch_size
+                acc1_total = 0.
+                acc5_total = 0.
+                loader_test.reset()
+
+                imgCounter = 1
+                for i in range(num_batch+1):
+                    images_batch, labels_batch = loader_test.next_batch(batch_size)
+
+                    feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
+
+                    topprediction = tf.nn.top_k(logits, 5)
+                    best_vals, best_indices = sess.run(topprediction, feed_dict)
+
+                    for img_idx in xrange(len(best_indices)):
+                        current_image = best_indices[img_idx]
+
+                        imgFile = str(imgCounter)
+                        imgFile = imgFile.zfill(8)
+
+                        imgCounter += 1
+
+                        f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
+
+                f.close()
+
+                readFile = open("./outputs/datalieALEXFINAL-"+current_step+".txt")
+                lines = readFile.readlines()
+                readFile.close()
+                w = open("./outputs/datalieALEXFINAL-"+current_step+".txt","w")
+                w.writelines([item for item in lines[:-240]])
+                w.close()
+
         # Save model
         if step % step_save == 0:
             saver.save(sess, str(step)+new_session, global_step=step)
@@ -232,6 +269,10 @@ with tf.Session() as sess:
     fwrite6.close()
 
     # Evaluate on the whole test set
+
+    current_step = str(step)
+
+    f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
     print 'Evaluation on the whole test set...'
     num_batch = loader_test.size()/batch_size
     acc1_total = 0.
@@ -259,9 +300,9 @@ with tf.Session() as sess:
 
     f.close()
 
-    readFile = open("./outputs/datalieALEXFINAL.txt")
+    readFile = open("./outputs/datalieALEXFINAL-"+current_step+".txt")
     lines = readFile.readlines()
     readFile.close()
-    w = open("./outputs/datalieALEXFINAL.txt","w")
+    w = open("./outputs/datalieALEXFINAL-"+current_step+".txt","w")
     w.writelines([item for item in lines[:-240]])
     w.close()
