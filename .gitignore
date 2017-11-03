@@ -6,6 +6,7 @@ data/images
 data/objects
 *.h5
 model/tensorflow/datalie.txt
+model/tensorflow/outputs
 
 # tf checkpoints
 checkpoint
