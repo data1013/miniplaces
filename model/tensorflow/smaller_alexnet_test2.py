@@ -3,25 +3,25 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.layers.python.layers import batch_norm
 from DataLoader import *
+from tensorflow.python.saved_model import builder as saved_model_builder
 
 # Dataset Parameters
 batch_size = 256
-load_size = 256
-fine_size = 224
+load_size = 128
+fine_size = 112
 c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.04 #Squeezenet paper says start at 0.04 then decrease linearly, 0.001 is default
-dropout = 0.5 # Dropout, probability to keep units
-training_iters = 50 #initially 50,000
-step_display = 1 #initially 50
-step_save = 50 #initially 10,000
+learning_rate = 0.001
+dropout = 0.6 # Dropout, probability to keep units
+training_iters = 10000 #initially 50,000
+step_display = 50 #initially 50
+step_save = 2500 #initially 10,000
 start_from = ''
-last_session = ''
-new_session = 'sqz1.ckpt'
+# last_session = '10000.ckpt-1300'
+new_session = '.ckpt'
 
-f = open("./outputs/datalieSqueeze.txt", "w+")
 fwrite1 = open("./outputs/trainingloss.txt", "w+")
 fwrite2 = open("./outputs/trainingacc1.txt", "w+")
 fwrite3 = open("./outputs/trainingacc5.txt", "w+")
@@ -30,88 +30,60 @@ fwrite5 = open("./outputs/validationacc1.txt", "w+")
 fwrite6 = open("./outputs/validationacc5.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
-    return batch_norm(x, decay=0.9, center=True, scale=True,
+    return batch_norm(x, decay=0.85, center=True, scale=True,
     updates_collections=None,
     is_training=train_phase,
     reuse=None,
     trainable=True,
     scope=scope_bn)
-
-#With reference to implementation here: https://github.com/Khushmeet/squeezeNet
-def fire(input, fire_id, channel, s1, e1, e3,):
-    weights = {
-        'wfr1': tf.Variable(tf.truncated_normal([1, 1, channel, s1])),
-        'wfr2': tf.Variable(tf.truncated_normal([3, 3, s1, e3])),
-        'wfr3': tf.Variable(tf.truncated_normal([1, 1, s1, e1]))
-    }
-        
-    biases = {
-        'bfr1': tf.Variable(tf.truncated_normal([s1])),
-        'bfr2': tf.Variable(tf.truncated_normal([e3])),
-        'bfr3': tf.Variable(tf.truncated_normal([e1]))
-    }
-
-    with tf.name_scope(fire_id):
-        conv1 = tf.nn.conv2d(input, weights['wfr1'], strides=[1, 1, 1, 1], padding='SAME')
-        relu1 = tf.nn.relu(tf.nn.bias_add(conv1, biases['bfr1']))
-
-        conv2 = tf.nn.conv2d(relu1, weights['wfr2'], strides=[1, 1, 1, 1], padding='SAME')
-        bias2 = tf.nn.bias_add(conv2, biases['bfr2'])
-
-        conv3 = tf.nn.conv2d(relu1, weights['wfr3'], strides=[1, 1, 1, 1], padding='SAME')
-        bias3 = tf.nn.bias_add(conv3, biases['bfr3'])
-
-        result = tf.concat([bias2, bias3], 3)
-        return tf.nn.relu(result)
     
-def squeezenet(x, keep_dropout, train_phase):
+def alexnet(x, keep_dropout, train_phase):
     weights = {
-        'wc1': tf.Variable(tf.truncated_normal([7, 7, 3, 96])),
-        'wc10': tf.Variable(tf.truncated_normal([1, 1, 512, 256])),
+        'wc1': tf.Variable(tf.random_normal([7, 7, 3, 72], stddev=np.sqrt(2./(7*7*3)))),
+        'wc2': tf.Variable(tf.random_normal([5, 5, 72, 192], stddev=np.sqrt(2./(5*5*72)))),
+        'wc3': tf.Variable(tf.random_normal([3, 3, 192, 336], stddev=np.sqrt(2./(3*3*192)))),
+        'wc4': tf.Variable(tf.random_normal([3, 3, 336, 192], stddev=np.sqrt(2./(3*3*336)))),
+        'wc5': tf.Variable(tf.random_normal([3, 3, 192, 192], stddev=np.sqrt(2./(3*3*192)))),
 
-        'wf6': tf.Variable(tf.random_normal([7*7*256, 4096], stddev=np.sqrt(2./(7*7*256)))),
-        'wf7': tf.Variable(tf.random_normal([4096, 4096], stddev=np.sqrt(2./4096))),
-        'wo': tf.Variable(tf.random_normal([4096, 100], stddev=np.sqrt(2./4096)))
+        'wf6': tf.Variable(tf.random_normal([9408, 3840], stddev=np.sqrt(2./(9408)))),
+        'wf7': tf.Variable(tf.random_normal([3840, 3840], stddev=np.sqrt(2./3840))),
+        'wo': tf.Variable(tf.random_normal([3840, 100], stddev=np.sqrt(2./3840)))
     }
-    '''
-    Changed wc1(3) to the 3rd index from the wc1 from alexnet, 100 classes
-    '''
 
     biases = {
-        'bc1': tf.Variable(tf.truncated_normal([96])),
-        'bc10': tf.Variable(tf.truncated_normal([256])),
-
         'bo': tf.Variable(tf.ones(100))
     }
 
+    # Conv + ReLU + Pool, 224->55->27
     conv1 = tf.nn.conv2d(x, weights['wc1'], strides=[1, 2, 2, 1], padding='SAME')
-    bias1 = tf.nn.bias_add(conv1, biases['bc1'])
+    conv1 = batch_norm_layer(conv1, train_phase, 'bn1')
+    conv1 = tf.nn.relu(conv1)
+    pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    maxpool1 = tf.nn.max_pool(bias1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+    # Conv + ReLU  + Pool, 27-> 13
+    conv2 = tf.nn.conv2d(pool1, weights['wc2'], strides=[1, 1, 1, 1], padding='SAME')
+    conv2 = batch_norm_layer(conv2, train_phase, 'bn2')
+    conv2 = tf.nn.relu(conv2)
+    pool2 = tf.nn.max_pool(conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    fire2 = fire(maxpool1, s1=16, e1=64, e3=64, channel=96, fire_id='fire2')
-    fire3 = fire(fire2, s1=16, e1=64, e3=64, channel=128, fire_id='fire3')
-    fire4 = fire(fire3, s1=32, e1=128, e3=128, channel=128, fire_id='fire4')
+    # Conv + ReLU, 13-> 13
+    conv3 = tf.nn.conv2d(pool2, weights['wc3'], strides=[1, 1, 1, 1], padding='SAME')
+    conv3 = batch_norm_layer(conv3, train_phase, 'bn3')
+    conv3 = tf.nn.relu(conv3)
 
-    maxpool4 = tf.nn.max_pool(fire4, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+    # Conv + ReLU, 13-> 13
+    conv4 = tf.nn.conv2d(conv3, weights['wc4'], strides=[1, 1, 1, 1], padding='SAME')
+    conv4 = batch_norm_layer(conv4, train_phase, 'bn4')
+    conv4 = tf.nn.relu(conv4)
 
-    fire5 = fire(maxpool4, s1=32, e1=128, e3=128, channel=256, fire_id='fire5')
-    fire6 = fire(fire5, s1=48, e1=192, e3=192, channel=256, fire_id='fire6')
-    fire7 = fire(fire6, s1=48, e1=192, e3=192, channel=384, fire_id='fire7')
-    fire8 = fire(fire7, s1=64, e1=256, e3=256, channel=384, fire_id='fire8')
+    # Conv + ReLU + Pool, 13->6
+    conv5 = tf.nn.conv2d(conv4, weights['wc5'], strides=[1, 1, 1, 1], padding='SAME')
+    conv5 = batch_norm_layer(conv5, train_phase, 'bn5')
+    conv5 = tf.nn.relu(conv5)
+    pool5 = tf.nn.max_pool(conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-    maxpool8 = tf.nn.max_pool(fire8, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-    fire9 = fire(maxpool8, s1=64, e1=256, e3=256, channel=512, fire_id='fire9')
-
-    dropout9 = tf.nn.dropout(fire9, keep_dropout)
-    conv10 = tf.nn.conv2d(dropout9, weights['wc10'], strides=[1, 1, 1, 1], padding='SAME')
-    bias10 = tf.nn.bias_add(conv10, biases['bc10'])
-    out1 = tf.nn.avg_pool(bias10, ksize=[1, 13, 13, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-    # Don't actualy want the FC below since SqueezeNet doesn't have fully-connected layers...
     # FC + ReLU + Dropout
-    fc6 = tf.reshape(out1, [-1, weights['wf6'].get_shape().as_list()[0]])
+    fc6 = tf.reshape(pool5, [-1, weights['wf6'].get_shape().as_list()[0]])
     fc6 = tf.matmul(fc6, weights['wf6'])
     fc6 = batch_norm_layer(fc6, train_phase, 'bn6')
     fc6 = tf.nn.relu(fc6)
@@ -147,7 +119,7 @@ opt_data_val = {
     'fine_size': fine_size,
     'data_mean': data_mean,
     'randomize': False,
-    'training': False
+    'training': True
     }
 
 opt_data_test = {
@@ -174,9 +146,7 @@ keep_dropout = tf.placeholder(tf.float32)
 train_phase = tf.placeholder(tf.bool)
 
 # Construct model
-logits = squeezenet(x, keep_dropout, train_phase)
-
-print "logits: ", logits
+logits = alexnet(x, keep_dropout, train_phase)
 
 # Define loss and optimizer
 loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits))
@@ -205,7 +175,7 @@ with tf.Session() as sess:
 
     # Restore model weights from previously saved model
     # saver.restore(sess, last_session)
-    #print("Model restored.")
+    # print("Model restored.")
     
     step = 0
 
@@ -214,12 +184,13 @@ with tf.Session() as sess:
         images_batch, labels_batch = loader_train.next_batch(batch_size)
 
         # Run optimization op (backprop)
-        print "images_batch: ", len(images_batch)
-        print "labels_batch: ", labels_batch.size
-
         sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
         step += 1
+
+        if step % 5000 == 0:
+            learning_rate /= 10
+            train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
         if step % step_display == 0:
             print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -247,10 +218,48 @@ with tf.Session() as sess:
             fwrite4.write("{:.6f}".format(l)+"\n")
             fwrite5.write("{:.4f}".format(acc1)+"\n")
             fwrite6.write("{:.4f}".format(acc5)+"\n")
-        
+
+            if acc5 > 0.77:
+                current_step = str(step)
+
+                f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
+                print 'Evaluation on the whole test set...'
+                num_batch = loader_test.size()/batch_size
+                acc1_total = 0.
+                acc5_total = 0.
+                loader_test.reset()
+
+                imgCounter = 1
+                for i in range(num_batch+1):
+                    images_batch, labels_batch = loader_test.next_batch(batch_size)
+
+                    feed_dict={x: images_batch, y: labels_batch, keep_dropout: 1., train_phase: False}
+
+                    topprediction = tf.nn.top_k(logits, 5)
+                    best_vals, best_indices = sess.run(topprediction, feed_dict)
+
+                    for img_idx in xrange(len(best_indices)):
+                        current_image = best_indices[img_idx]
+
+                        imgFile = str(imgCounter)
+                        imgFile = imgFile.zfill(8)
+
+                        imgCounter += 1
+
+                        f.write("test/" + imgFile + ".jpg %i %i %i %i %i\n" % (current_image[0], current_image[1], current_image[2], current_image[3], current_image[4]))
+
+                f.close()
+
+                readFile = open("./outputs/datalieALEXFINAL-"+current_step+".txt")
+                lines = readFile.readlines()
+                readFile.close()
+                w = open("./outputs/datalieALEXFINAL-"+current_step+".txt","w")
+                w.writelines([item for item in lines[:-240]])
+                w.close()
+
         # Save model
         if step % step_save == 0:
-            saver.save(sess, new_session, global_step=step)
+            saver.save(sess, str(step)+new_session, global_step=step)
             print "Model saved at Iter %d !" %(step)
         
     print "Optimization Finished!"
@@ -263,6 +272,10 @@ with tf.Session() as sess:
     fwrite6.close()
 
     # Evaluate on the whole test set
+
+    current_step = str(step)
+
+    f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
     print 'Evaluation on the whole test set...'
     num_batch = loader_test.size()/batch_size
     acc1_total = 0.
@@ -290,9 +303,9 @@ with tf.Session() as sess:
 
     f.close()
 
-    readFile = open("./outputs/datalieALEXFINAL.txt")
+    readFile = open("./outputs/datalieALEXFINAL-"+current_step+".txt")
     lines = readFile.readlines()
     readFile.close()
-    w = open("./outputs/datalieALEXFINAL.txt","w")
+    w = open("./outputs/datalieALEXFINAL-"+current_step+".txt","w")
     w.writelines([item for item in lines[:-240]])
     w.close()
