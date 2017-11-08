@@ -62,7 +62,7 @@ class DataLoaderH5(object):
 
             images_batch[i, ...] = image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
 
-            #Natalie
+            #Natalie der
             plt.imshow(image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :], interpolation='nearest')
             plt.show()
 
