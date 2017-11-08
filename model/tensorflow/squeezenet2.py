@@ -12,14 +12,14 @@ c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.04 #Squeezenet paper says start at 0.04 then decrease linearly, 0.001 is default
+learning_rate = 0.0001 #Squeezenet paper says start at 0.04 then decrease linearly, 0.001 is default
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 50 #initially 50,000
-step_display = 1 #initially 50
-step_save = 50 #initially 10,000
+training_iters = 5000 #initially 50,000
+step_display = 50 #initially 50
+step_save = 9999999 #initially 10,000
 start_from = ''
 last_session = ''
-new_session = 'sqz1.ckpt'
+new_session = 'sqz2.ckpt'
 
 f = open("./outputs/datalieSqueeze.txt", "w+")
 fwrite1 = open("./outputs/trainingloss.txt", "w+")
@@ -290,9 +290,9 @@ with tf.Session() as sess:
 
     f.close()
 
-    readFile = open("./outputs/datalieALEXFINAL.txt")
+    readFile = open("./outputs/datalieSqueeze.txt")
     lines = readFile.readlines()
     readFile.close()
-    w = open("./outputs/datalieALEXFINAL.txt","w")
+    w = open("./outputs/datalieSqueeze.txt","w")
     w.writelines([item for item in lines[:-240]])
     w.close()

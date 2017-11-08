@@ -15,8 +15,8 @@ data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 # Training Parameters
 learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 1000 #initially 50,000
-step_display = 50 #initially 50
+training_iters = 1 #initially 50,000
+step_display = 1 #initially 50
 step_save = 1000 #initially 10,000
 export_dir = 'builtModel/'
 start_from = ''
@@ -58,31 +58,65 @@ def alexnet(x, keep_dropout, train_phase):
 
     # Conv + ReLU + Pool, 224->55->27
     conv1 = tf.nn.conv2d(x, weights['wc1'], strides=[1, 4, 4, 1], padding='SAME')
+
+    print "conv1 initial: ", conv1
+
     conv1 = batch_norm_layer(conv1, train_phase, 'bn1')
     conv1 = tf.nn.relu(conv1)
+
+    print "conv1 final: ", conv1
+
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+
+    print "pool1: ", pool1
 
     # Conv + ReLU  + Pool, 27-> 13
     conv2 = tf.nn.conv2d(pool1, weights['wc2'], strides=[1, 1, 1, 1], padding='SAME')
+
+    print "conv2 initial: ", conv2
+
     conv2 = batch_norm_layer(conv2, train_phase, 'bn2')
     conv2 = tf.nn.relu(conv2)
+
+    print "conv2 final: ", conv2
+
     pool2 = tf.nn.max_pool(conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+
+    print "pool2: ", pool2
 
     # Conv + ReLU, 13-> 13
     conv3 = tf.nn.conv2d(pool2, weights['wc3'], strides=[1, 1, 1, 1], padding='SAME')
+
+    print "conv3 initial: ", conv3
+
     conv3 = batch_norm_layer(conv3, train_phase, 'bn3')
     conv3 = tf.nn.relu(conv3)
 
+    print "conv3 final: ", conv3
+
     # Conv + ReLU, 13-> 13
     conv4 = tf.nn.conv2d(conv3, weights['wc4'], strides=[1, 1, 1, 1], padding='SAME')
+
+    print "conv4 initial: ", conv4
+
     conv4 = batch_norm_layer(conv4, train_phase, 'bn4')
     conv4 = tf.nn.relu(conv4)
 
+    print "conv4 final: ", conv4
+
     # Conv + ReLU + Pool, 13->6
     conv5 = tf.nn.conv2d(conv4, weights['wc5'], strides=[1, 1, 1, 1], padding='SAME')
+
+    print "conv5 initial: ", conv5
+
     conv5 = batch_norm_layer(conv5, train_phase, 'bn5')
     conv5 = tf.nn.relu(conv5)
+
+    print "conv5 final: ", conv5
+
     pool5 = tf.nn.max_pool(conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+
+    print "pool5: ", pool5
 
     # FC + ReLU + Dropout
     fc6 = tf.reshape(pool5, [-1, weights['wf6'].get_shape().as_list()[0]])
@@ -90,6 +124,8 @@ def alexnet(x, keep_dropout, train_phase):
     fc6 = batch_norm_layer(fc6, train_phase, 'bn6')
     fc6 = tf.nn.relu(fc6)
     fc6 = tf.nn.dropout(fc6, keep_dropout)
+
+    print "fc6: ", fc6
     
     # FC + ReLU + Dropout
     fc7 = tf.matmul(fc6, weights['wf7'])
@@ -97,8 +133,12 @@ def alexnet(x, keep_dropout, train_phase):
     fc7 = tf.nn.relu(fc7)
     fc7 = tf.nn.dropout(fc7, keep_dropout)
 
+    print "fc7: ", fc7
+
     # Output FC
     out = tf.add(tf.matmul(fc7, weights['wo']), biases['bo'])
+
+    print "output (add): ", out
 
     return out
 
@@ -150,6 +190,8 @@ train_phase = tf.placeholder(tf.bool)
 # Construct model
 logits = alexnet(x, keep_dropout, train_phase)
 
+print "logits: ",logits
+
 # Define loss and optimizer
 loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits))
 train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
@@ -186,6 +228,9 @@ with tf.Session() as sess:
         images_batch, labels_batch = loader_train.next_batch(batch_size)
 
         # Run optimization op (backprop)
+        #print "images_batch: ", len(images_batch)
+        #print "labels_batch: ", labels_batch.size
+
         sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
         step += 1
