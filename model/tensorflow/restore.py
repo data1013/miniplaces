@@ -17,7 +17,8 @@ dropout = 0.5 # Dropout, probability to keep units
 training_iters = 1 #initially 50,000
 step_display = 1 #initially 50
 step_save = 1000 #initially 10,000
-last_session = '10000.ckpt-1300'
+last_session = ''
+#last_session = '10000.ckpt-1300'
 new_session = '11000.ckpt'
 
 f = open("./outputs/datalieALEXFINAL.txt", "w+")
@@ -215,8 +216,9 @@ with tf.Session() as sess:
     print("Post-running init.")
 
     # Restore model weights from previously saved model
-    saver.restore(sess, last_session)
-    print("Model restored.")
+    if last_session:
+        saver.restore(sess, last_session)
+        print("Model restored.")
     
     step = 0
 

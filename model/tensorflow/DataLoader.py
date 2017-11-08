@@ -2,6 +2,8 @@ import os
 import numpy as np
 import scipy.misc
 import h5py
+from matplotlib import pyplot as plt
+
 np.random.seed(123)
 
 # loading data from .h5
@@ -34,11 +36,24 @@ class DataLoaderH5(object):
         
         for i in range(batch_size):
             image = self.im_set[self._idx]
+
+            #Natalie
+            plt.imshow(image, interpolation='nearest')
+            plt.show()
+
             image = image.astype(np.float32)/255. - self.data_mean
+
+            #Natalie
+            plt.imshow(image, interpolation='nearest')
+            plt.show()
+
             if self.randomize:
                 flip = np.random.random_integers(0, 1)
                 if flip>0:
                     image = image[:,::-1,:]
+                    #Natalie
+                    plt.imshow(image, interpolation='nearest')
+                    plt.show()
                 offset_h = np.random.random_integers(0, self.load_size-self.fine_size)
                 offset_w = np.random.random_integers(0, self.load_size-self.fine_size)
             else:
@@ -46,6 +61,11 @@ class DataLoaderH5(object):
                 offset_w = (self.load_size-self.fine_size)/2
 
             images_batch[i, ...] = image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :]
+
+            #Natalie
+            plt.imshow(image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :], interpolation='nearest')
+            plt.show()
+
             labels_batch[i, ...] = self.lab_set[self._idx]
             
             self._idx += 1

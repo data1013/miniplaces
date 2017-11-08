@@ -54,15 +54,19 @@ def fire(input, fire_id, channel, s1, e1, e3,):
     with tf.name_scope(fire_id):
         conv1 = tf.nn.conv2d(input, weights['wfr1'], strides=[1, 1, 1, 1], padding='SAME')
         relu1 = tf.nn.relu(tf.nn.bias_add(conv1, biases['bfr1']))
+        print 'fire conv1: ', relu1
 
         conv2 = tf.nn.conv2d(relu1, weights['wfr2'], strides=[1, 1, 1, 1], padding='SAME')
         bias2 = tf.nn.bias_add(conv2, biases['bfr2'])
+        print 'fire conv2: ', bias2
 
         conv3 = tf.nn.conv2d(relu1, weights['wfr3'], strides=[1, 1, 1, 1], padding='SAME')
         bias3 = tf.nn.bias_add(conv3, biases['bfr3'])
+        print 'fire conv3: ', bias3
 
-        result = tf.concat([bias2, bias3], 3)
-        return tf.nn.relu(result)
+        concat = tf.concat([bias2, bias3], 3)
+        print 'fire concat: ', concat
+        return tf.nn.relu(concat)
     
 def squeezenet(x, keep_dropout, train_phase):
     weights = {
@@ -87,27 +91,67 @@ def squeezenet(x, keep_dropout, train_phase):
     conv1 = tf.nn.conv2d(x, weights['wc1'], strides=[1, 2, 2, 1], padding='SAME')
     bias1 = tf.nn.bias_add(conv1, biases['bc1'])
 
+    print 'conv1: ', bias1
+
     maxpool1 = tf.nn.max_pool(bias1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+    print 'maxpool1: ', maxpool1
+
     fire2 = fire(maxpool1, s1=16, e1=64, e3=64, channel=96, fire_id='fire2')
+
+    print 'fire2: ', fire2
+
     fire3 = fire(fire2, s1=16, e1=64, e3=64, channel=128, fire_id='fire3')
+
+    print 'fire3: ', fire3
+
     fire4 = fire(fire3, s1=32, e1=128, e3=128, channel=128, fire_id='fire4')
+
+    print 'fire4: ', fire4
 
     maxpool4 = tf.nn.max_pool(fire4, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+    print 'maxpool4: ', maxpool4
+
     fire5 = fire(maxpool4, s1=32, e1=128, e3=128, channel=256, fire_id='fire5')
+
+    print 'fire5: ', fire5
+
     fire6 = fire(fire5, s1=48, e1=192, e3=192, channel=256, fire_id='fire6')
+
+    print 'fire6: ', fire6
+
     fire7 = fire(fire6, s1=48, e1=192, e3=192, channel=384, fire_id='fire7')
+
+    print 'fire7: ', fire7
+
     fire8 = fire(fire7, s1=64, e1=256, e3=256, channel=384, fire_id='fire8')
+
+    print 'fire8: ', fire8
 
     maxpool8 = tf.nn.max_pool(fire8, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+    print 'maxpool8: ', maxpool8
+
     fire9 = fire(maxpool8, s1=64, e1=256, e3=256, channel=512, fire_id='fire9')
 
+    print 'fire9: ', fire9
+
     dropout9 = tf.nn.dropout(fire9, keep_dropout)
+
+    print 'dropout9: ', dropout9
+
     conv10 = tf.nn.conv2d(dropout9, weights['wc10'], strides=[1, 1, 1, 1], padding='SAME')
+
+    print 'conv10: ', conv10
+
     bias10 = tf.nn.bias_add(conv10, biases['bc10'])
+
+    print 'bias10: ', bias10
+
     out1 = tf.nn.avg_pool(bias10, ksize=[1, 13, 13, 1], strides=[1, 2, 2, 1], padding='SAME')
+
+    print 'out1: ', out1
 
     # Don't actualy want the FC below since SqueezeNet doesn't have fully-connected layers...
     # FC + ReLU + Dropout
@@ -116,6 +160,8 @@ def squeezenet(x, keep_dropout, train_phase):
     fc6 = batch_norm_layer(fc6, train_phase, 'bn6')
     fc6 = tf.nn.relu(fc6)
     fc6 = tf.nn.dropout(fc6, keep_dropout)
+
+    print 'fc6: ', fc6
     
     # FC + ReLU + Dropout
     fc7 = tf.matmul(fc6, weights['wf7'])
@@ -123,8 +169,12 @@ def squeezenet(x, keep_dropout, train_phase):
     fc7 = tf.nn.relu(fc7)
     fc7 = tf.nn.dropout(fc7, keep_dropout)
 
+    print 'fc7: ', fc7
+
     # Output FC
     out = tf.add(tf.matmul(fc7, weights['wo']), biases['bo'])
+
+    print 'out: ', out
 
     return out
 
