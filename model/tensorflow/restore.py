@@ -3,7 +3,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.layers.python.layers import batch_norm
 from DataLoader import *
-from tensorflow.python.saved_model import builder as saved_model_builder
 
 # Dataset Parameters
 batch_size = 256
@@ -18,8 +17,6 @@ dropout = 0.5 # Dropout, probability to keep units
 training_iters = 1 #initially 50,000
 step_display = 1 #initially 50
 step_save = 1000 #initially 10,000
-export_dir = 'builtModel/'
-start_from = ''
 last_session = '10000.ckpt-1300'
 new_session = '11000.ckpt'
 

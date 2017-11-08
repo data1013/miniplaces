@@ -16,7 +16,7 @@ learning_rate = 0.0001 #Squeezenet paper says start at 0.04 then decrease linear
 dropout = 0.5 # Dropout, probability to keep units
 training_iters = 5000 #initially 50,000
 step_display = 50 #initially 50
-step_save = 9999999 #initially 10,000
+step_save = 1000 #initially 10,000
 start_from = ''
 last_session = ''
 new_session = 'sqz2.ckpt'
@@ -214,8 +214,8 @@ with tf.Session() as sess:
         images_batch, labels_batch = loader_train.next_batch(batch_size)
 
         # Run optimization op (backprop)
-        print "images_batch: ", len(images_batch)
-        print "labels_batch: ", labels_batch.size
+        #print "images_batch: ", len(images_batch)
+        #print "labels_batch: ", labels_batch.size
 
         sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
