@@ -12,9 +12,9 @@ c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.001
+learning_rate = 0.04 #Squeezenet paper says start at 0.04 then decrease linearly, 0.001 is default
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 10 #initially 50,000
+training_iters = 50 #initially 50,000
 step_display = 1 #initially 50
 step_save = 50 #initially 10,000
 start_from = ''
@@ -109,6 +109,7 @@ def squeezenet(x, keep_dropout, train_phase):
     bias10 = tf.nn.bias_add(conv10, biases['bc10'])
     out1 = tf.nn.avg_pool(bias10, ksize=[1, 13, 13, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+    # Don't actualy want the FC below since SqueezeNet doesn't have fully-connected layers...
     # FC + ReLU + Dropout
     fc6 = tf.reshape(out1, [-1, weights['wf6'].get_shape().as_list()[0]])
     fc6 = tf.matmul(fc6, weights['wf6'])
