@@ -13,13 +13,13 @@ c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.001
+learning_rate = 0.0001
 dropout = 0.6 # Dropout, probability to keep units
-training_iters = 10000 #initially 50,000
+training_iters = 12500 #initially 50,000
 step_display = 50 #initially 50
 step_save = 2500 #initially 10,000
 start_from = ''
-# last_session = '10000.ckpt-1300'
+last_session = '10000.ckpt-10000'
 new_session = '.ckpt'
 
 fwrite1 = open("./outputs/trainingloss.txt", "w+")
@@ -174,10 +174,10 @@ with tf.Session() as sess:
     print("Post-running init.")
 
     # Restore model weights from previously saved model
-    # saver.restore(sess, last_session)
-    # print("Model restored.")
+    saver.restore(sess, last_session)
+    print("Model restored.")
     
-    step = 0
+    step = 10000
 
     while step < training_iters:
         # Load a batch of training data
@@ -187,10 +187,6 @@ with tf.Session() as sess:
         sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
         step += 1
-
-        if step % 5000 == 0:
-            learning_rate /= 10
-            train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
         if step % step_display == 0:
             print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -219,7 +215,7 @@ with tf.Session() as sess:
             fwrite5.write("{:.4f}".format(acc1)+"\n")
             fwrite6.write("{:.4f}".format(acc5)+"\n")
 
-            if acc5 > 0.77:
+            if acc5 > 0.78:
                 current_step = str(step)
 
                 f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
