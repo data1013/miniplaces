@@ -1,3 +1,3 @@
 #!/bin/bash
-python smaller_alexnet_test.py
+python smaller_alexnet_test2.py
 sudo shutdown
