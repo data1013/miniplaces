@@ -42,7 +42,12 @@ for subdir, dirs, files in os.walk(root_dir):
     		current_dir_label_name = current_dir_list[6]
     		current_dir_label_num = label_dict[current_dir_label_name]
 
-    		output_dir = "../" + current_dir_label_name + "_augmented"
+    		output_relative_path = "../"
+
+    		if len(current_dir_list) == 8:
+    			output_relative_path = "../../"
+
+    		output_dir = output_relative_path + current_dir_label_name + "_augmented"
 
     		# if k < 1:
 
