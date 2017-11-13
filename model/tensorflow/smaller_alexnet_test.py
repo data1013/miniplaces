@@ -13,11 +13,11 @@ c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.00001
+learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 11000 #initially 50,000
+training_iters = 10000 #initially 50,000
 step_display = 50 #initially 50
-step_save = 1000 #initially 10,000
+step_save = 2500 #initially 10,000
 export_dir = 'builtModel/'
 start_from = ''
 last_session = '8000.ckpt-8000'
@@ -175,10 +175,10 @@ with tf.Session() as sess:
     print("Post-running init.")
 
     # Restore model weights from previously saved model
-    saver.restore(sess, last_session)
-    print("Model restored.")
+    #saver.restore(sess, last_session)
+    #print("Model restored.")
     
-    step = 8000
+    step = 0
 
     while step < training_iters:
         # Load a batch of training data
@@ -216,7 +216,7 @@ with tf.Session() as sess:
             fwrite5.write("{:.4f}".format(acc1)+"\n")
             fwrite6.write("{:.4f}".format(acc5)+"\n")
 
-            if acc5 > 0.78:
+            if acc5 > 0.80:
                 current_step = str(step)
 
                 f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
