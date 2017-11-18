@@ -52,15 +52,16 @@ for subdir, dirs, files in os.walk(root_dir):
     		# if k < 1:
 
     		p = Augmentor.Pipeline(current_dir, output_dir)
-    		p.skew(probability=0.4)
-    		p.random_distortion(probability=0.4, grid_width=4, grid_height=4, magnitude=6)
-    		p.rotate(probability=0.4, max_left_rotation=15, max_right_rotation=15)
+    		p.skew(probability=0.5)
+    		p.random_distortion(probability=0.5, grid_width=4, grid_height=4, magnitude=6)
+    		p.rotate(probability=0.5, max_left_rotation=15, max_right_rotation=15)
 
     		p.sample(4000)
 
     		output_dirs.append((current_dir + '/' + output_dir, current_dir_label_name, current_dir_label_num))
 
-	    		# k += 1
+	    	print '\n' + str(k)
+		k += 1
 
         total_dirs += 1
 

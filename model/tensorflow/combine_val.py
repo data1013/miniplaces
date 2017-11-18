@@ -45,7 +45,10 @@ with open('../../data/categories.txt') as f:
 with open('../../data/val.txt') as f:
     for line in f:
         line = line.split()
-        file_name = "val_" + line[0].split('/')[1]
+        file_name = line[0].split('/')[1]
         file_label = line[1]
 
         val_label_dict[file_name] = file_label
+
+rename_val_files()
+copy_val_to_train()
