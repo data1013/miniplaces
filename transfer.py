@@ -1,4 +1,4 @@
-fread = open("transfer.rtf", "r") 
+fread = open("derpderp.rtf", "r") 
 fwrite1 = open("trainingloss.txt", "w+")
 fwrite2 = open("trainingacc1.txt", "w+")
 fwrite3 = open("trainingacc5.txt", "w+")

@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.layers.python.layers import batch_norm
 from DataLoader import *
+from tensorflow.python.saved_model import builder as saved_model_builder
 
 # Dataset Parameters
 batch_size = 256
@@ -12,15 +13,17 @@ c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.00001 #Squeezenet paper says start at 0.04 then decrease linearly, 0.001 is default
+learning_rate = 0.001
 dropout = 0.5 # Dropout, probability to keep units
-training_iters = 10000 #initially 50,000
-step_display = 50 #initially 50
-step_save = 10000 #initially 10,000
-last_session = 'sqzPOST5000.ckpt-3000'
-new_session = 'sqzPOST8000.ckpt'
+training_iters = 1 #initially 50,000
+step_display = 1 #initially 50
+step_save = 1000 #initially 10,000
+export_dir = 'builtModel/'
+start_from = ''
+last_session = '10000.ckpt-1300'
+new_session = '11000.ckpt'
 
-f = open("./outputs/datalieSqueeze.txt", "w+")
+f = open("./outputs/datalieALEXFINAL.txt", "w+")
 fwrite1 = open("./outputs/trainingloss.txt", "w+")
 fwrite2 = open("./outputs/trainingacc1.txt", "w+")
 fwrite3 = open("./outputs/trainingacc5.txt", "w+")
@@ -35,147 +38,84 @@ def batch_norm_layer(x, train_phase, scope_bn):
     reuse=None,
     trainable=True,
     scope=scope_bn)
+    
+def fire_module(input, fire_id, channel, s1, e1, e3,):
+    """
+    Basic module that makes up the SqueezeNet architecture. It has two layers.
+     1. Squeeze layer (1x1 convolutions)
+     2. Expand layer (1x1 and 3x3 convolutions)
+    :param input: Tensorflow tensor
+    :param fire_id: Variable scope name
+    :param channel: Depth of the previous output
+    :param s1: Number of filters for squeeze 1x1 layer
+    :param e1: Number of filters for expand 1x1 layer
+    :param e3: Number of filters for expand 3x3 layer
+    :return: Tensorflow tensor
+    """
 
-#With reference to implementation here: https://github.com/Khushmeet/squeezeNet
-def fire(input, fire_id, channel, s1, e1, e3,):
-    weights = {
-        'wfr1': tf.Variable(tf.truncated_normal([1, 1, channel, s1])),
-        'wfr2': tf.Variable(tf.truncated_normal([3, 3, s1, e3])),
-        'wfr3': tf.Variable(tf.truncated_normal([1, 1, s1, e1]))
-    }
-        
-    biases = {
-        'bfr1': tf.Variable(tf.truncated_normal([s1])),
-        'bfr2': tf.Variable(tf.truncated_normal([e3])),
-        'bfr3': tf.Variable(tf.truncated_normal([e1]))
-    }
+    fire_weights = {'conv_s_1': tf.Variable(tf.truncated_normal([1, 1, channel, s1])),
+                    'conv_e_1': tf.Variable(tf.truncated_normal([1, 1, s1, e1])),
+                    'conv_e_3': tf.Variable(tf.truncated_normal([3, 3, s1, e3]))}
+
+    fire_biases = {'conv_s_1': tf.Variable(tf.truncated_normal([s1])),
+                   'conv_e_1': tf.Variable(tf.truncated_normal([e1])),
+                   'conv_e_3': tf.Variable(tf.truncated_normal([e3]))}
 
     with tf.name_scope(fire_id):
-        conv1 = tf.nn.conv2d(input, weights['wfr1'], strides=[1, 1, 1, 1], padding='SAME')
-        relu1 = tf.nn.relu(tf.nn.bias_add(conv1, biases['bfr1']))
-        print 'fire conv1: ', relu1
+        output = tf.nn.conv2d(input, fire_weights['conv_s_1'], strides=[1, 1, 1, 1], padding='SAME', name='conv_s_1')
+        output = tf.nn.relu(tf.nn.bias_add(output, fire_biases['conv_s_1']))
 
-        conv2 = tf.nn.conv2d(relu1, weights['wfr2'], strides=[1, 1, 1, 1], padding='SAME')
-        bias2 = tf.nn.bias_add(conv2, biases['bfr2'])
-        print 'fire conv2: ', bias2
+        expand1 = tf.nn.conv2d(output, fire_weights['conv_e_1'], strides=[1, 1, 1, 1], padding='SAME', name='conv_e_1')
+        expand1 = tf.nn.bias_add(expand1, fire_biases['conv_e_1'])
 
-        conv3 = tf.nn.conv2d(relu1, weights['wfr3'], strides=[1, 1, 1, 1], padding='SAME')
-        bias3 = tf.nn.bias_add(conv3, biases['bfr3'])
-        print 'fire conv3: ', bias3
+        expand3 = tf.nn.conv2d(output, fire_weights['conv_e_3'], strides=[1, 1, 1, 1], padding='SAME', name='conv_e_3')
+        expand3 = tf.nn.bias_add(expand3, fire_biases['conv_e_3'])
 
-        concat = tf.concat([bias2, bias3], 3)
-        print 'fire concat: ', concat
-        return tf.nn.relu(concat)
-    
-def squeezenet(x, keep_dropout, train_phase):
-    weights = {
-        'wc1': tf.Variable(tf.truncated_normal([7, 7, 3, 96])),
-        'wc10': tf.Variable(tf.truncated_normal([1, 1, 512, 256])),
+        result = tf.concat([expand1, expand3], 3, name='concat_e1_e3')
+        return tf.nn.relu(result)
 
-        'wf6': tf.Variable(tf.random_normal([7*7*256, 4096], stddev=np.sqrt(2./(7*7*256)))),
-        'wf7': tf.Variable(tf.random_normal([4096, 4096], stddev=np.sqrt(2./4096))),
-        'wo': tf.Variable(tf.random_normal([4096, 100], stddev=np.sqrt(2./4096)))
-    }
-    '''
-    Changed wc1(3) to the 3rd index from the wc1 from alexnet, 100 classes
-    '''
 
-    biases = {
-        'bc1': tf.Variable(tf.truncated_normal([96])),
-        'bc10': tf.Variable(tf.truncated_normal([256])),
+def squeezenet(input, classes):
+    """
+    :param input: Input tensor (4D)
+    :param classes: number of classes for classification
+    :return: Tensorflow tensor
+    """
 
-        'bo': tf.Variable(tf.ones(100))
-    }
+    weights = {'conv1': tf.Variable(tf.truncated_normal([7, 7, 1, 96])),
+               'conv10': tf.Variable(tf.truncated_normal([1, 1, 512, classes]))}
 
-    conv1 = tf.nn.conv2d(x, weights['wc1'], strides=[1, 2, 2, 1], padding='SAME')
-    bias1 = tf.nn.bias_add(conv1, biases['bc1'])
+    biases = {'conv1': tf.Variable(tf.truncated_normal([96])),
+              'conv10': tf.Variable(tf.truncated_normal([classes]))}
 
-    print 'conv1: ', bias1
+    output = tf.nn.conv2d(input, weights['conv1'], strides=[1,2,2,1], padding='SAME', name='conv1')
+    output = tf.nn.bias_add(output, biases['conv1'])
 
-    maxpool1 = tf.nn.max_pool(bias1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+    output = tf.nn.max_pool(output, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool1')
 
-    print 'maxpool1: ', maxpool1
+    output = fire_module(output, s1=16, e1=64, e3=64, channel=96, fire_id='fire2')
+    output = fire_module(output, s1=16, e1=64, e3=64, channel=128, fire_id='fire3')
+    output = fire_module(output, s1=32, e1=128, e3=128, channel=128, fire_id='fire4')
 
-    fire2 = fire(maxpool1, s1=16, e1=64, e3=64, channel=96, fire_id='fire2')
+    output = tf.nn.max_pool(output, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool4')
 
-    print 'fire2: ', fire2
+    output = fire_module(output, s1=32, e1=128, e3=128, channel=256, fire_id='fire5')
+    output = fire_module(output, s1=48, e1=192, e3=192, channel=256, fire_id='fire6')
+    output = fire_module(output, s1=48, e1=192, e3=192, channel=384, fire_id='fire7')
+    output = fire_module(output, s1=64, e1=256, e3=256, channel=384, fire_id='fire8')
 
-    fire3 = fire(fire2, s1=16, e1=64, e3=64, channel=128, fire_id='fire3')
+    output = tf.nn.max_pool(output, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='maxpool8')
 
-    print 'fire3: ', fire3
+    output = fire_module(output, s1=64, e1=256, e3=256, channel=512, fire_id='fire9')
 
-    fire4 = fire(fire3, s1=32, e1=128, e3=128, channel=128, fire_id='fire4')
+    output = tf.nn.dropout(output, keep_prob=0.5, name='dropout9')
 
-    print 'fire4: ', fire4
+    output = tf.nn.conv2d(output, weights['conv10'], strides=[1, 1, 1, 1], padding='SAME', name='conv10')
+    output = tf.nn.bias_add(output, biases['conv10'])
 
-    maxpool4 = tf.nn.max_pool(fire4, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+    output = tf.nn.avg_pool(output, ksize=[1, 13, 13, 1], strides=[1, 2, 2, 1], padding='SAME', name='avgpool10')
 
-    print 'maxpool4: ', maxpool4
-
-    fire5 = fire(maxpool4, s1=32, e1=128, e3=128, channel=256, fire_id='fire5')
-
-    print 'fire5: ', fire5
-
-    fire6 = fire(fire5, s1=48, e1=192, e3=192, channel=256, fire_id='fire6')
-
-    print 'fire6: ', fire6
-
-    fire7 = fire(fire6, s1=48, e1=192, e3=192, channel=384, fire_id='fire7')
-
-    print 'fire7: ', fire7
-
-    fire8 = fire(fire7, s1=64, e1=256, e3=256, channel=384, fire_id='fire8')
-
-    print 'fire8: ', fire8
-
-    maxpool8 = tf.nn.max_pool(fire8, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-    print 'maxpool8: ', maxpool8
-
-    fire9 = fire(maxpool8, s1=64, e1=256, e3=256, channel=512, fire_id='fire9')
-
-    print 'fire9: ', fire9
-
-    dropout9 = tf.nn.dropout(fire9, keep_dropout)
-
-    print 'dropout9: ', dropout9
-
-    conv10 = tf.nn.conv2d(dropout9, weights['wc10'], strides=[1, 1, 1, 1], padding='SAME')
-
-    print 'conv10: ', conv10
-
-    bias10 = tf.nn.bias_add(conv10, biases['bc10'])
-
-    print 'bias10: ', bias10
-
-    out1 = tf.nn.avg_pool(bias10, ksize=[1, 13, 13, 1], strides=[1, 2, 2, 1], padding='SAME')
-
-    print 'out1: ', out1
-
-    # Don't actualy want the FC below since SqueezeNet doesn't have fully-connected layers...
-    # FC + ReLU + Dropout
-    fc6 = tf.reshape(out1, [-1, weights['wf6'].get_shape().as_list()[0]])
-    fc6 = tf.matmul(fc6, weights['wf6'])
-    fc6 = batch_norm_layer(fc6, train_phase, 'bn6')
-    fc6 = tf.nn.relu(fc6)
-    fc6 = tf.nn.dropout(fc6, keep_dropout)
-
-    print 'fc6: ', fc6
-    
-    # FC + ReLU + Dropout
-    fc7 = tf.matmul(fc6, weights['wf7'])
-    fc7 = batch_norm_layer(fc7, train_phase, 'bn7')
-    fc7 = tf.nn.relu(fc7)
-    fc7 = tf.nn.dropout(fc7, keep_dropout)
-
-    print 'fc7: ', fc7
-
-    # Output FC
-    out = tf.add(tf.matmul(fc7, weights['wo']), biases['bo'])
-
-    print 'out: ', out
-
-    return out
+    return output
 
 # Construct dataloader
 opt_data_train = {
@@ -225,8 +165,7 @@ train_phase = tf.placeholder(tf.bool)
 # Construct model
 logits = squeezenet(x, keep_dropout, train_phase)
 
-print "logits: ", logits
-
+# Define loss and optimizer
 loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits))
 train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
@@ -244,8 +183,6 @@ init = tf.global_variables_initializer()
 # Add ops to save and restore all the variables.
 saver = tf.train.Saver()
 
-changeLearning1 = False
-
 with tf.Session() as sess:
     print("Pre-running init.")
     # Initialize variables
@@ -254,9 +191,8 @@ with tf.Session() as sess:
     print("Post-running init.")
 
     # Restore model weights from previously saved model
-    if last_session:
-        saver.restore(sess, last_session)
-        print("Model restored.")
+    saver.restore(sess, last_session)
+    print("Model restored.")
     
     step = 0
 
@@ -265,31 +201,9 @@ with tf.Session() as sess:
         images_batch, labels_batch = loader_train.next_batch(batch_size)
 
         # Run optimization op (backprop)
-        #print "images_batch: ", len(images_batch)
-        #print "labels_batch: ", labels_batch.size
+        sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
         
         step += 1
-
-        if step > 1:
-            changeLearning1 = True
-        
-        '''if changeLearning1:
-            changeLearning1 = False
-            learning_rate = 0.00001
-            
-            loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits))
-            train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
-
-            accuracy1 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(logits, y, 1), tf.float32))
-            accuracy5 = tf.reduce_mean(tf.cast(tf.nn.in_top_k(logits, y, 5), tf.float32))
-
-            accuracy1_nums = tf.nn.in_top_k(logits, y, 1)
-            accuracy5_nums = tf.nn.in_top_k(logits, y, 5)
-
-            init = tf.global_variables_initializer()
-        '''
-
-        sess.run(train_optimizer, feed_dict={x: images_batch, y: labels_batch, keep_dropout: dropout, train_phase: True})
 
         if step % step_display == 0:
             print '[%s]:' %(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -360,9 +274,9 @@ with tf.Session() as sess:
 
     f.close()
 
-    readFile = open("./outputs/datalieSqueeze.txt")
+    readFile = open("./outputs/datalieALEXFINAL.txt")
     lines = readFile.readlines()
     readFile.close()
-    w = open("./outputs/datalieSqueeze.txt","w")
+    w = open("./outputs/datalieALEXFINAL.txt","w")
     w.writelines([item for item in lines[:-240]])
     w.close()

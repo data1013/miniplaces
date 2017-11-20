@@ -1,5 +1,3 @@
-with open("datalie.txt") as file:
+with open("derpderp.rtf") as file:
     for line in file:
-        line = line.rstrip()
-        if line:
-            print line
+        line = line.strip("\n")
