@@ -142,7 +142,7 @@ class DataLoaderDisk(object):
 
             image = image - self.data_mean
 
-            #Natalie SPICY deleting mean is color
+            #Natalie
             #plt.imshow(image, interpolation='nearest')
             #plt.show()
 
@@ -151,16 +151,17 @@ class DataLoaderDisk(object):
                 if flip>0:
                     image = image[:,::-1,:]
 
-                    #Natalie flip sometimes
+                    #Natalie
                     #plt.imshow(image, interpolation='nearest')
                     #plt.show()
+
                 offset_h = np.random.random_integers(0, self.load_size-self.fine_size)
                 offset_w = np.random.random_integers(0, self.load_size-self.fine_size)
             else:
                 offset_h = (self.load_size-self.fine_size)/2
                 offset_w = (self.load_size-self.fine_size)/2
 
-            #Natalie gets cropped a little
+            #Natalie
             #plt.imshow(image[offset_h:offset_h+self.fine_size, offset_w:offset_w+self.fine_size, :], interpolation='nearest')
             #plt.show()
 

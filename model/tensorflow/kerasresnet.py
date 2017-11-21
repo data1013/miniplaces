@@ -66,7 +66,7 @@ model = ResNet50(
 model.compile(loss = 'categorical_crossentropy', optimizer = 'Adam', metrics = ['accuracy', 'top_k_categorical_accuracy'])
 
 training_iters = 1
-batch_size = 16 #need to be small to not run out of memory, like 32
+batch_size = 128 #need to be small to not run out of memory, like 32
 
 step = 0
 

@@ -13,13 +13,14 @@ c = 3
 data_mean = np.asarray([0.45834960097,0.44674252445,0.41352266842])
 
 # Training Parameters
-learning_rate = 0.0001
-dropout = 0.6 # Dropout, probability to keep units
-training_iters = 12500 #initially 50,000
+learning_rate = 0.001
+dropout = 0.5 # Dropout, probability to keep units
+beta = 0.001
+training_iters = 10000 #initially 50,000
 step_display = 50 #initially 50
 step_save = 2500 #initially 10,000
 start_from = ''
-last_session = '10000.ckpt-10000'
+# last_session = '10000.ckpt-1300'
 new_session = '.ckpt'
 
 fwrite1 = open("./outputs/trainingloss.txt", "w+")
@@ -30,26 +31,26 @@ fwrite5 = open("./outputs/validationacc1.txt", "w+")
 fwrite6 = open("./outputs/validationacc5.txt", "w+")
 
 def batch_norm_layer(x, train_phase, scope_bn):
-    return batch_norm(x, decay=0.85, center=True, scale=True,
+    return batch_norm(x, decay=0.9, center=True, scale=True,
     updates_collections=None,
     is_training=train_phase,
     reuse=None,
     trainable=True,
     scope=scope_bn)
+
+weights = {
+    'wc1': tf.Variable(tf.random_normal([7, 7, 3, 72], stddev=np.sqrt(2./(7*7*3)))),
+    'wc2': tf.Variable(tf.random_normal([5, 5, 72, 192], stddev=np.sqrt(2./(5*5*72)))),
+    'wc3': tf.Variable(tf.random_normal([3, 3, 192, 336], stddev=np.sqrt(2./(3*3*192)))),
+    'wc4': tf.Variable(tf.random_normal([3, 3, 336, 192], stddev=np.sqrt(2./(3*3*336)))),
+    'wc5': tf.Variable(tf.random_normal([3, 3, 192, 192], stddev=np.sqrt(2./(3*3*192)))),
+
+    'wf6': tf.Variable(tf.random_normal([9408, 3840], stddev=np.sqrt(2./(9408)))),
+    'wf7': tf.Variable(tf.random_normal([3840, 3840], stddev=np.sqrt(2./3840))),
+    'wo': tf.Variable(tf.random_normal([3840, 100], stddev=np.sqrt(2./3840)))
+}
     
 def alexnet(x, keep_dropout, train_phase):
-    weights = {
-        'wc1': tf.Variable(tf.random_normal([7, 7, 3, 72], stddev=np.sqrt(2./(7*7*3)))),
-        'wc2': tf.Variable(tf.random_normal([5, 5, 72, 192], stddev=np.sqrt(2./(5*5*72)))),
-        'wc3': tf.Variable(tf.random_normal([3, 3, 192, 336], stddev=np.sqrt(2./(3*3*192)))),
-        'wc4': tf.Variable(tf.random_normal([3, 3, 336, 192], stddev=np.sqrt(2./(3*3*336)))),
-        'wc5': tf.Variable(tf.random_normal([3, 3, 192, 192], stddev=np.sqrt(2./(3*3*192)))),
-
-        'wf6': tf.Variable(tf.random_normal([9408, 3840], stddev=np.sqrt(2./(9408)))),
-        'wf7': tf.Variable(tf.random_normal([3840, 3840], stddev=np.sqrt(2./3840))),
-        'wo': tf.Variable(tf.random_normal([3840, 100], stddev=np.sqrt(2./3840)))
-    }
-
     biases = {
         'bo': tf.Variable(tf.ones(100))
     }
@@ -149,7 +150,8 @@ train_phase = tf.placeholder(tf.bool)
 logits = alexnet(x, keep_dropout, train_phase)
 
 # Define loss and optimizer
-loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits))
+lossL2 = beta * tf.add_n([tf.nn.l2_loss(weights[key]) for key in weights.keys()])
+loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y, logits=logits) + lossL2)
 train_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
 # Evaluate model
@@ -174,10 +176,10 @@ with tf.Session() as sess:
     print("Post-running init.")
 
     # Restore model weights from previously saved model
-    saver.restore(sess, last_session)
-    print("Model restored.")
+    # saver.restore(sess, last_session)
+    # print("Model restored.")
     
-    step = 10000
+    step = 0
 
     while step < training_iters:
         # Load a batch of training data
@@ -215,7 +217,7 @@ with tf.Session() as sess:
             fwrite5.write("{:.4f}".format(acc1)+"\n")
             fwrite6.write("{:.4f}".format(acc5)+"\n")
 
-            if acc5 > 0.78:
+            if acc5 > 0.80:
                 current_step = str(step)
 
                 f = open("./outputs/datalieALEXFINAL-"+current_step+".txt", "w+")
